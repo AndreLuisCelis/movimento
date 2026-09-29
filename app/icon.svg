@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Movimento">
+  <title>Movimento</title>
+  <rect width="512" height="512" rx="96" fill="#0f62fe" />
+  <path
+    d="M143.2 235 A120 120 0 0 0 368.8 235"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="56"
+    stroke-linecap="round"
+  />
+  <circle cx="368.8" cy="235" r="30.7" fill="#ffffff" />
+</svg>

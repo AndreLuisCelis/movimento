@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sem ligação — Movimento</title>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --cds-background: #ffffff;
+        --cds-text-primary: #161616;
+        --cds-text-secondary: #525252;
+        --cds-link-primary: #0f62fe;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --cds-background: #161616;
+          --cds-text-primary: #f4f4f4;
+          --cds-text-secondary: #c6c6c6;
+          --cds-link-primary: #78a9ff;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        display: flex;
+        min-height: 100vh;
+        margin: 0;
+        padding: 2rem 1rem;
+        align-items: center;
+        justify-content: center;
+        background: var(--cds-background);
+        color: var(--cds-text-primary);
+        font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      }
+      main {
+        max-width: 32rem;
+      }
+      h1 {
+        margin: 0 0 1rem;
+        font-size: 1.75rem;
+        font-weight: 400;
+        line-height: 1.25;
+      }
+      p {
+        margin: 0 0 1rem;
+        color: var(--cds-text-secondary);
+        font-size: 1rem;
+        line-height: 1.5;
+      }
+      a {
+        color: var(--cds-link-primary);
+        font-size: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Sem ligação</h1>
+      <p>
+        Não conseguimos alcançar a rede agora. As pausas já registadas continuam no teu
+        dispositivo e sincronizam assim que a ligação voltar.
+      </p>
+      <p><a href="/">Tentar novamente</a></p>
+    </main>
+  </body>
+</html>
