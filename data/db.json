@@ -1,0 +1,24 @@
+{
+  "users": [
+    {
+      "id": "0f06dade-cbe6-4485-9ece-ec1f9fd7bbac",
+      "name": "Andre Celis",
+      "email": "andreluiscelis@celisapp.com",
+      "passwordHash": "s2$96172c1c6a90eb787c4ee64a3a2d0708$3a47c91a5d22959677266858856d8555d03d6ca2fa1cabeda6aa73719dedb52db03dabd15f18df4d29b98de106ba8e7eb3fea48cafc6413238812de015ffe037",
+      "createdAt": "2026-09-29T21:57:59.763Z"
+    }
+  ],
+  "sessions": {
+    "4cccf26aae768d8fe1f347908059733a5e92fa2c701ab620cf06b59787423db5": {
+      "userId": "0f06dade-cbe6-4485-9ece-ec1f9fd7bbac",
+      "expiresAt": "2026-10-29T22:05:29.351Z"
+    }
+  },
+  "movements": {
+    "0f06dade-cbe6-4485-9ece-ec1f9fd7bbac": [
+      {
+        "at": "2026-09-29T22:06:45.960Z"
+      }
+    ]
+  }
+}

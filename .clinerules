@@ -1,0 +1,145 @@
+
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+## 1. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+## 2. Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+---
+
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+# Especificação Técnica: Implementação de Clean Architecture para Agentes de IA (Next.js & Carbon Design System)
+
+Este documento define as regras arquiteturais, restrições e diretrizes de design que você, como Agente de IA, deve seguir rigorosamente ao gerar, refatorar ou analisar o código deste projeto frontend.
+
+---
+
+## 1. Princípio Fundamental: A Regra da Dependência
+
+O código deve ser dividido em camadas concêntricas. **As dependências de código devem apontar apenas para dentro.** 
+- Camadas internas não sabem nada sobre as camadas externas.
+- Componentes visuais (`@carbon/react`), Hooks do React, utilitários do Next.js (como `useRouter`, `params`) ou chamadas diretas de `fetch` pertencem à camada mais externa e **nunca** devem aparecer ou influenciar o código das camadas de Domínio ou Casos de Uso.
+
+---
+
+## 2. Estrutura de Pastas e Camadas
+
+Toda funcionalidade (módulo/feature) deve respeitar a seguinte separação estrita de pastas dentro do diretório `src/`:
+
+```text
+src/
+├── domain/                  # Camada 1: Regras de Negócio Core (Mais interna)
+│   ├── entities/            # Modelos de dados de negócio e validações puras (TypeScript puro)
+│   └── value-objects/       # Objetos de valor imutáveis e lógicas utilitárias de negócio
+├── use-cases/               # Camada 2: Casos de Uso (Regras da Aplicação)
+│   ├── ports/               # Interfaces/Contratos para comunicação externa (Gateways/APIs)
+│   └── [feature-name]/      # Casos de uso específicos (ex: load-dashboard.use-case.ts)
+├── adapters/                # Camada 3: Conversores e Gerenciadores de Estado
+│   ├── view-models/         # Hooks React Customizados (gerenciam estado e expõem dados limpos para a UI)
+│   └── gateways/            # Implementação de interfaces de comunicação (Ex: fetchers de API, LocalStorage)
+└── infrastructure/          # Camada 4: Frameworks e Interface do Usuário (Mais externa)
+    ├── app/                 # Sistema de rotas do Next.js (App Router: pages, layouts, server actions)
+    ├── components/          # Componentes de UI construídos com @carbon/react e @carbon/icons-react
+    └── styles/              # Configurações globais e customizações do Sass global (`sass`)
+```
+
+---
+
+## 3. Diretrizes Detalhadas por Camada
+
+### 3.1. Camada Domain (Domínio)
+- **O que faz:** Contém as definições de dados e lógica de negócios globais, independente de tecnologia.
+- **Restrições estritas:** 
+  - **ZERO dependências externas.** Proibido importar Next.js, React, Carbon ou bibliotecas de terceiros (exceto utilitários puramente matemáticos ou IDs).
+  - Deve conter entidades de negócio com validações de consistência interna (TypeScript puro).
+
+### 3.2. Camada Use Cases (Casos de Uso)
+- **O que faz:** Orquestra o fluxo de dados. Aplica as regras de aplicação específicas (ex: calcular totais de emissão, filtrar dados de negócio).
+- **Uso de Portas (Inversão de Dependência):**
+  - Se o caso de uso precisar buscar dados de uma API, ele **não** faz `fetch` ou `axios` diretamente. Ele deve interagir com uma `interface` (Porta/Gateway) definida dentro desta mesma camada (ex: `ICarbonRepository`).
+- **Restrições estritas:** Não sabe se os dados vêm de uma API REST, GraphQL, ou de dados mockados localmente.
+
+### 3.3. Camada Adapters (Adaptadores)
+- **O que faz:** Traduz os dados estruturados de fora para dentro e vice-versa.
+- **Gateways (Repositories):** Implementa as interfaces criadas nos Use Cases. Transforma o JSON bruto vindo da API externa (DTO) em Entidades do Domínio limpas.
+- **View Models (React Hooks):** Atuam como pontes para os componentes do navegador. Gerenciam estados (`useState`, `useEffect`) e chamam os Casos de Uso, blindando a UI de lógica algorítmica.
+
+### 3.4. Camada Infrastructure (Infraestrutura)
+- **O que faz:** Onde o Next.js, React 19 e o Carbon Design System ganham vida. É a camada puramente visual e operacional.
+- **Restrições estritas:** Os componentes visuais da Carbon (como `<Grid>`, `<Column>`, `<Tile>`, `<Button>`) servem apenas para renderizar dados e capturar eventos. Eles devem ser o mais "burros" possível, delegando decisões para os Adaptadores ou Casos de Uso.
+
+---
+
+## 4. Fluxo de Execução Padrão (Exemplo: Dashboard / Carregamento de Tela)
+
+Para qualquer renderização ou interação, garanta que os dados sigam rigorosamente este fluxo de transformação:
+
+1. **Infraestrutura (Next.js Server Component):** A página `src/app/dashboard/page.tsx` intercepta a requisição da rota.
+2. **Composição de Dependências:** A página instancia o Adaptador real (`ApiCarbonRepository`), injeta-o no Caso de Uso (`LoadDashboardUseCase`) e executa a lógica.
+3. **Use Case & Domínio:** O caso de uso pede os dados pela interface, o adaptador busca na API externa e mapeia em Entidades do Domínio. O caso de uso processa as regras de negócio e retorna um objeto plano.
+4. **Infraestrutura (UI Carbon):** Os dados processados são repassados para os componentes client/server do `@carbon/react` (como `<Tile>`, `<DataTable>`) renderizarem na tela.
+
+---
+
+## 5. Instruções de Codificação para a IA
+
+Ao gerar código baseado nesta especificação:
+1. **Sempre crie Interfaces primeiro:** Antes de simular ou implementar qualquer serviço que dependa da internet ou do navegador, crie a interface correspondente em `src/use-cases/ports/`.
+2. **Separação Estrita da UI:** Nunca insira condicionais de regras de negócio complexas ou cálculos matemáticos de negócio dentro de componentes React. Use os View Models (Hooks) ou Casos de Uso para preparar o dado perfeitamente antes dele chegar no componente `@carbon/react`.
+3. **Tratamento de Erros:** Exceções de negócio devem ser disparadas nas camadas internas (ex: `InvalidConsumptionError`). A camada de infraestrutura (Next.js) deve capturar esses erros e renderizar amigavelmente componentes como inline notifications ou modais de erro da Carbon.
+4. **Respeito ao Ecossistema Next.js + Sass:** Configurações de revalidação de rotas (`next: { revalidate }`) ou Server Actions devem ficar limitadas à camada de `infrastructure` ou `adapters/gateways`, nunca violando os casos de uso.

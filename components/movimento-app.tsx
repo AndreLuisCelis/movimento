@@ -32,6 +32,7 @@ import {
   VolumeUpFilled,
   WarningFilled,
 } from '@carbon/icons-react'
+import { usePerformanceReport } from '@/src/adapters/view-models/use-performance-report'
 
 type CharacterId = 'captain' | 'doctor' | 'master' | 'random'
 type Exercise = { id: number; name: string; quantity: number; unit: string }
@@ -68,6 +69,7 @@ const formatTime = (seconds: number) => `${String(Math.floor(seconds / 60)).padS
 const pick = <T,>(items: T[]) => items[Math.floor(Math.random() * items.length)]
 
 export function MovimentoApp() {
+  const { stats, recordMovement } = usePerformanceReport()
   const [intervalMinutes, setIntervalMinutes] = useState(60)
   const [snoozeMinutes, setSnoozeMinutes] = useState(5)
   const [characterId, setCharacterId] = useState<CharacterId>('captain')
@@ -148,7 +150,7 @@ export function MovimentoApp() {
   const resetTimer = (minutes = intervalMinutes) => setEndTime(Date.now() + minutes * 60 * 1000)
   const snooze = () => { setAlertOpen(false); resetTimer(snoozeMinutes) }
   const skip = () => { setAlertOpen(false); resetTimer() }
-  const complete = () => { setAlertOpen(false); setCompleted((value) => Math.min(value + 1, 6)); setLastMovement(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })); resetTimer() }
+  const complete = () => { setAlertOpen(false); setCompleted((value) => Math.min(value + 1, 6)); setLastMovement(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })); void recordMovement(); resetTimer() }
   const addExercise = () => setExercises((items) => [...items, { id: Date.now(), name: 'Novo exercício', quantity: 10, unit: 'repetições' }])
   const updateExercise = (id: number, field: keyof Exercise, value: string | number) => setExercises((items) => items.map((item) => item.id === id ? { ...item, [field]: value } : item))
   const moveExercise = (index: number, direction: -1 | 1) => setExercises((items) => { const next = [...items]; const target = index + direction; if (target < 0 || target >= next.length) return items; [next[index], next[target]] = [next[target], next[index]]; return next })
@@ -181,8 +183,8 @@ export function MovimentoApp() {
           </Column>
           <Column sm={4} md={8} lg={6} xlg={6}>
             <div className="side-heading"><span className="eyebrow">HOJE</span><span className="date-label">28 SET 2026</span></div>
-            <div className="stats-grid"><Tile><span className="stat-value">6</span><span className="stat-label">movimentos hoje</span></Tile><Tile><span className="stat-value stat-time">{lastMovement}</span><span className="stat-label">último movimento</span></Tile></div>
-            <Tile className="progress-card"><div className="card-topline"><span>BATERIAS CONCLUÍDAS</span><strong>{completed} / 6</strong></div><div className="progress-track"><span style={{ width: `${(completed / 6) * 100}%` }} /></div><p>Mais uma pausa e você fecha o ciclo do dia.</p></Tile>
+            <div className="stats-grid"><Tile><span className="stat-value">{stats?.todayCount ?? completed}</span><span className="stat-label">movimentos hoje</span></Tile><Tile><span className="stat-value stat-time">{stats?.lastMovement ?? lastMovement}</span><span className="stat-label">último movimento</span></Tile></div>
+            <Tile className="progress-card"><div className="card-topline"><span>BATERIAS CONCLUÍDAS</span><strong>{Math.min(stats?.todayCount ?? completed, 6)} / 6</strong></div><div className="progress-track"><span style={{ width: `${(Math.min(stats?.todayCount ?? completed, 6) / 6) * 100}%` }} /></div><p>Mais uma pausa e você fecha o ciclo do dia.</p></Tile>
             <Tile className="quiet-card"><Information size={20} /><div><strong>Pequenas pausas contam.</strong><p>O Movimento não é um treino. É um convite para interromper a inércia.</p></div></Tile>
           </Column>
         </Grid>
