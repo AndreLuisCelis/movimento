@@ -4,7 +4,7 @@
  */
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import type { ISessionRepository, Session } from '@/src/use-cases/ports/session-repository.interface'
-import { mutate, read } from '@/src/adapters/gateways/json-db'
+import { mutate, read } from '@/src/adapters/gateways/db'
 
 const TTL_DAYS = 30
 

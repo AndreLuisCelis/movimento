@@ -101,9 +101,12 @@ src/
 │   ├── auth-errors.ts        # erros de aplicação
 │   └── register-user.use-case.ts         # padrão: <verbo>-<objeto>.use-case.ts
 ├── adapters/                 # Camada 3 — tradução de dados e estado
-│   ├── gateways/             # implementações dos ports sobre o store JSON
+│   ├── gateways/             # implementações dos ports + store de dados
 │   │   ├── composition.ts    # RAIZ DE COMPOSIÇÃO (gateways + casos de uso + fachada)
-│   │   ├── json-db.ts        # store `data/db.json` + schema `DbData`/`UserRecord`
+│   │   ├── db.ts             # escolhe o store: Redis (env) ou ficheiro local
+│   │   ├── document-store.interface.ts  # IDocumentStore + `DbData`/`UserRecord`
+│   │   ├── json-db.ts        # store de ficheiro `data/db.json` (dev local)
+│   │   ├── redis-db.ts       # store Upstash Redis (Vercel/produção)
 │   │   ├── json-user-repository.ts / json-session-repository.ts / json-performance-repository.ts
 │   │   └── scrypt-password-hasher.ts
 │   └── view-models/          # hooks React: use-auth-session.ts, use-performance-report.ts
@@ -187,7 +190,8 @@ export class RegisterUserUseCase {
 Esqueleto mínimo do padrão: `constructor(private readonly <port>: I<Port>)` + `async execute(<entrada>): Promise<Entidade | Resultado>`.
 
 ### 3.3. Camada Adapters (Adaptadores)
-- **Gateways:** implementam os ports (`implements IUserRepository`) e traduzem registo de persistência ↔ entidade (`toEntity`/`toRecord` em `json-user-repository.ts`). O I/O de infraestrutura (`node:fs`, `node:crypto`, `data/db.json`) vive aqui.
+- **Gateways:** implementam os ports (`implements IUserRepository`) e traduzem registo de persistência ↔ entidade (`toEntity`/`toRecord` em `json-user-repository.ts`). O I/O de infraestrutura (`node:fs`, `node:crypto`) vive aqui.
+- **Store de dados:** os repositórios falam com `IDocumentStore` (`document-store.interface.ts`) via `read`/`mutate` de `db.ts`, que escolhe a implementação — Redis quando há credenciais (`UPSTASH_REDIS_REST_*` / `KV_REST_API_*`) e ficheiro local (`data/db.json`) caso contrário. Fora dos adapters ninguém sabe onde o dado mora, e um backend novo é só uma nova implementação de `IDocumentStore`.
 - **Raiz de composição:** `src/adapters/gateways/composition.ts` é o único ponto que conhece todas as camadas — instancia os gateways, injeta-os nos casos de uso (`new RegisterUserUseCase(users, hasher)`) e expõe a fachada consumida pela infraestrutura (`auth`, `performanceApi`). Casos de uso não são instanciados em páginas nem em route handlers.
 - **Projeção de segredos:** a fachada aplica `toPublicUser()` antes de devolver ao HTTP; `passwordHash` nunca sai dos adapters.
 - **View Models:** hooks `'use client'` que falam com as rotas HTTP via `fetch`, gerenciam `useState`/`useEffect` e devolvem dados limpos (`useAuthSession` → `signIn`/`signUp`/`signOut`; `usePerformanceReport` → `stats`/`recordMovement`). Sem regra de negócio dentro do hook.

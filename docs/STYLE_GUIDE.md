@@ -77,5 +77,5 @@ Use frases curtas para ações e textos mais completos nos modais de apresentaç
 - [ ] Mantém contraste e foco de teclado.
 - [ ] Não usa movimento no hover de cards.
 - [ ] Mantém responsividade em 320px, 672px e 1056px+.
-- [ ] Valida `pnpm build` depois de mudanças relevantes.
+- [ ] Valida `npm run build` depois de mudanças relevantes.
 - [ ] Verifica comportamento visível no preview.

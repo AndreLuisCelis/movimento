@@ -1,46 +1,18 @@
 /**
- * Store JSON em disco (data/db.json) — implementa as ports sem dependências
- * externas. Escritas atómicas (tmp + rename) e serializadas numa fila.
- * Limite conhecido: instância única do servidor (correcto para este PWA local).
+ * Store de documentos em ficheiro (`data/db.json`) — o store do desenvolvimento
+ * local, onde o disco é gravável. Escritas atómicas (tmp + rename) e
+ * serializadas numa fila por instância.
+ *
+ * No Vercel o filesystem é só de leitura: em produção quem serve é o
+ * `RedisDocumentStore`, escolhido em `db.ts`.
  */
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import type { Session } from '@/src/use-cases/ports/session-repository.interface'
-import type { MovementRecord } from '@/src/use-cases/ports/performance-repository.interface'
-
-/** Forma plana do utilizador em disco (a entidade `User` é hidratada no repositório). */
-export type UserRecord = {
-  id: string
-  name: string
-  email: string
-  passwordHash: string
-  createdAt: string
-}
-
-export type DbData = {
-  users: UserRecord[]
-  /** chave = sha256(token) — o token bruto nunca fica em disco. */
-  sessions: Record<string, Session>
-  movements: Record<string, MovementRecord[]>
-}
+import type { DbData, IDocumentStore } from '@/src/adapters/gateways/document-store.interface'
 
 const DB_PATH = path.join(process.cwd(), 'data', 'db.json')
 
 const EMPTY: DbData = { users: [], sessions: {}, movements: {} }
-
-let cache: DbData | null = null
-let queue: Promise<unknown> = Promise.resolve()
-
-async function readDb(): Promise<DbData> {
-  if (cache) return cache
-  try {
-    const raw = await fs.readFile(DB_PATH, 'utf8')
-    cache = { ...EMPTY, ...(JSON.parse(raw) as Partial<DbData>) }
-  } catch {
-    cache = { ...EMPTY }
-  }
-  return cache
-}
 
 async function persist(data: DbData): Promise<void> {
   await fs.mkdir(path.dirname(DB_PATH), { recursive: true })
@@ -49,19 +21,31 @@ async function persist(data: DbData): Promise<void> {
   await fs.rename(tmp, DB_PATH)
 }
 
-/** Lê o store; as mutações devem usar `mutate` para garantir serialização. */
-export function read(): Promise<DbData> {
-  return readDb()
+export class JsonDocumentStore implements IDocumentStore {
+  private cache: DbData | null = null
+  private queue: Promise<unknown> = Promise.resolve()
+
+  async read(): Promise<DbData> {
+    if (this.cache) return this.cache
+    try {
+      const raw = await fs.readFile(DB_PATH, 'utf8')
+      this.cache = { ...EMPTY, ...(JSON.parse(raw) as Partial<DbData>) }
+    } catch {
+      this.cache = { ...EMPTY }
+    }
+    return this.cache
+  }
+
+  /** Lê-modifica-escreve com escrita atómica, serializada entre chamadas. */
+  mutate<T>(fn: (db: DbData) => T | Promise<T>): Promise<T> {
+    const run = this.queue.then(async () => {
+      const db = await this.read()
+      const result = await fn(db)
+      await persist(db)
+      return result
+    })
+    this.queue = run.catch(() => undefined)
+    return run
+  }
 }
 
-/** Lê-modifica-escreve com escrita atómica, serializada entre chamadas. */
-export function mutate<T>(fn: (db: DbData) => T | Promise<T>): Promise<T> {
-  const run = queue.then(async () => {
-    const db = await readDb()
-    const result = await fn(db)
-    await persist(db)
-    return result
-  })
-  queue = run.catch(() => undefined)
-  return run
-}

@@ -1,7 +1,8 @@
 /** Repositório de utilizadores sobre o store JSON. */
 import { User } from '@/src/domain/entities/user'
 import type { IUserRepository } from '@/src/use-cases/ports/user-repository.interface'
-import { mutate, read, type UserRecord } from '@/src/adapters/gateways/json-db'
+import { mutate, read } from '@/src/adapters/gateways/db'
+import type { UserRecord } from '@/src/adapters/gateways/document-store.interface'
 
 /** Converte a entidade na forma plana guardada em disco. */
 function toRecord(user: User): UserRecord {

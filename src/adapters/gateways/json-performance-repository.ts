@@ -1,6 +1,6 @@
 /** Registos de desempenho sobre o store JSON. */
 import type { IPerformanceRepository, MovementRecord } from '@/src/use-cases/ports/performance-repository.interface'
-import { mutate, read } from '@/src/adapters/gateways/json-db'
+import { mutate, read } from '@/src/adapters/gateways/db'
 
 const MAX_RECORDS_PER_USER = 5000
 

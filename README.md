@@ -106,6 +106,24 @@ npm start          # serve o build em http://localhost:3000
 
 > 📱 **Testar no celular:** rode `npm run dev` e abra o IP da máquina na LAN (ex.: `http://192.168.0.10:3000`). O cookie de sessão segue o protocolo do pedido: em `http://` ele **não** é `secure`, senão o navegador descartaria o login.
 
+### ☁️ Deploy no Vercel + store de dados
+
+O build roda em qualquer ambiente, mas **onde os dados são guardados muda com a plataforma**. O `src/adapters/gateways/db.ts` escolhe o store na primeira utilização:
+
+| Ambiente | Store escolhido | Onde ficam os dados |
+| --- | --- | --- |
+| Local (`npm run dev` / `npm start`) | `JsonDocumentStore` | `data/db.json`, no disco (gravável) |
+| Vercel **com** `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | `RedisDocumentStore` | Upstash Redis (um documento JSON em `movimento:db`) |
+| Vercel **sem** essas variáveis | `JsonDocumentStore` | ❌ nada — o filesystem é somente leitura (`EROFS`) |
+
+Para publicar de verdade, no painel do Vercel:
+
+1. **Storage → Marketplace → "Upstash for Redis"** (o plano free dá conta) e conecte ao projeto;
+2. a integração injeta `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN` (projetos criados na época do Vercel KV usam `KV_REST_API_*` — o app também aceita esses nomes);
+3. **Redeploy** — variáveis novas só passam a valer no próximo build.
+
+Nada mais muda: portas, casos de uso e UI continuam iguais — o Redis é apenas mais uma implementação do lado dos adapters. Para testar contra o Redis sem subir nada, copie `.env.example` para `.env.local` e preencha as credenciais.
+
 ## 🗺️ Mapa do repositório
 
 ```text
@@ -124,7 +142,7 @@ src/                          # as quatro camadas vivem aqui
 
 components/                   # UI do app (starter legado): movimento-app, tema, cabeçalho
 public/                       # sw.js, offline.html, avatares e ícones da PWA
-data/db.json                  # store local: usuários, sessões e movimentos
+data/db.json                  # store de dev (no Vercel os dados ficam no Upstash Redis)
 docs/                         # PWA, build, style guide e especificações do produto
 scripts/                      # check-pwa.ps1 e geração dos ícones
 ```
@@ -246,7 +264,7 @@ E, em mudanças de fluxo HTTP, um **smoke test das rotas** na mão: `register` �
 
 ## 🧭 Notas e cuidados
 
-- 💾 **Persistência local:** os dados vivem em `data/db.json` (usuários, sessões e movimentos). É um store por processo, pensado para uso pessoal/local — não é banco de dados para escala.
+- 💾 **Persistência:** localmente os dados ficam em `data/db.json`; no Vercel, no Upstash Redis (veja a seção *Deploy no Vercel + store de dados*). É um documento JSON único, pensado para uso pessoal — não é banco de dados para escala.
 - 🗂️ **Código legado na raiz:** as pastas `components/` e `domain/` vêm do starter/migração. O `components/` ainda entrega a UI do app (`movimento-app.tsx`, tema e cabeçalho); o `domain/` da raiz não é importado por ninguém e `components/sections/*` são sobras do starter Carbon. Código novo vai para `src/`.
 - 🌍 **Idioma:** a interface e os textos de produto são em **pt-BR**; no código, siga o idioma dos comentários do arquivo que estiver editando.
 
