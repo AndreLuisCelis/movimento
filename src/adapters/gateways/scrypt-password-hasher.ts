@@ -1,7 +1,7 @@
 /** Hash de senhas com scrypt (node:crypto) — formato `s2$<salt>$<hash>` em hex. */
 import { randomBytes, scrypt as scryptCb, timingSafeEqual } from 'node:crypto'
 import { promisify } from 'node:util'
-import type { IPasswordHasher } from '@/src/use-cases/ports/password-hasher'
+import type { IPasswordHasher } from '@/src/use-cases/ports/password-hasher.interface'
 
 const scrypt = promisify(scryptCb)
 const KEY_LEN = 64

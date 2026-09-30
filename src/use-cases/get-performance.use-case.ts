@@ -1,4 +1,4 @@
-import type { IPerformanceRepository } from '@/src/use-cases/ports/performance-repository'
+import type { IPerformanceRepository } from '@/src/use-cases/ports/performance-repository.interface'
 
 /** Meta diária de baterias (regra de negócio — a UI nunca a define). */
 export const DAILY_GOAL = 6
@@ -71,5 +71,15 @@ export function computeStats(records: { at: string }[], now = new Date()): Perfo
     streakDays,
     totalMovements: records.length,
     week,
+  }
+}
+
+/** Métricas de desempenho do utilizador autenticado. */
+export class GetPerformanceUseCase {
+  constructor(private readonly performanceRepo: IPerformanceRepository) {}
+
+  async execute(userId: string): Promise<PerformanceStats> {
+    const records = await this.performanceRepo.listByUser(userId)
+    return computeStats(records)
   }
 }

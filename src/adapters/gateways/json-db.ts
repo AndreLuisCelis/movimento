@@ -5,9 +5,17 @@
  */
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import type { UserRecord } from '@/src/domain/entities/user'
-import type { Session } from '@/src/use-cases/ports/session-repository'
-import type { MovementRecord } from '@/src/use-cases/ports/performance-repository'
+import type { Session } from '@/src/use-cases/ports/session-repository.interface'
+import type { MovementRecord } from '@/src/use-cases/ports/performance-repository.interface'
+
+/** Forma plana do utilizador em disco (a entidade `User` é hidratada no repositório). */
+export type UserRecord = {
+  id: string
+  name: string
+  email: string
+  passwordHash: string
+  createdAt: string
+}
 
 export type DbData = {
   users: UserRecord[]

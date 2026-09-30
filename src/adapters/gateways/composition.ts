@@ -1,14 +1,16 @@
 /**
- * Raiz de composição server-side: instancia os gateways reais e injeta nos
- * casos de uso. Importada apenas por route handlers (camada infrastructure).
+ * Raiz de composição server-side: instancia os gateways reais, injeta-os nos
+ * casos de uso (camada adapters) e expõe a fachada consumida pelos route
+ * handlers. Importada apenas pela camada infrastructure.
  */
-import type { User } from '@/src/domain/entities/user'
-import type { Session } from '@/src/use-cases/ports/session-repository'
+import { toPublicUser, type PublicUser } from '@/src/domain/entities/user'
 import type { PerformanceStats } from '@/src/use-cases/get-performance.use-case'
-import { registerUser } from '@/src/use-cases/register-user.use-case'
-import { loginUser } from '@/src/use-cases/login-user.use-case'
-import { getCurrentUser } from '@/src/use-cases/get-current-user.use-case'
-import { getPerformance, recordMovement } from '@/src/use-cases/performance.use-case'
+import type { Session } from '@/src/use-cases/ports/session-repository.interface'
+import { RegisterUserUseCase } from '@/src/use-cases/register-user.use-case'
+import { LoginUserUseCase } from '@/src/use-cases/login-user.use-case'
+import { GetCurrentUserUseCase } from '@/src/use-cases/get-current-user.use-case'
+import { GetPerformanceUseCase } from '@/src/use-cases/get-performance.use-case'
+import { RecordMovementUseCase } from '@/src/use-cases/record-movement.use-case'
 import { JsonUserRepository } from '@/src/adapters/gateways/json-user-repository'
 import { JsonSessionRepository } from '@/src/adapters/gateways/json-session-repository'
 import { JsonPerformanceRepository } from '@/src/adapters/gateways/json-performance-repository'
@@ -19,19 +21,28 @@ const sessions = new JsonSessionRepository()
 const performance = new JsonPerformanceRepository()
 const hasher = new ScryptPasswordHasher()
 
+const registerUser = new RegisterUserUseCase(users, hasher)
+const loginUser = new LoginUserUseCase(users, hasher)
+const getCurrentUser = new GetCurrentUserUseCase(users, sessions)
+const getPerformance = new GetPerformanceUseCase(performance)
+const recordMovement = new RecordMovementUseCase(performance)
+
+/** Fachada de autenticação: os casos de uso devolvem entidades, aqui projetadas para fora sem o hash. */
 export const auth = {
-  register: (input: unknown): Promise<User> => registerUser({ users, hasher }, input),
-  login: (input: unknown): Promise<User> => loginUser({ users, hasher }, input),
-  currentUser: (token: string | null | undefined): Promise<User | null> =>
-    getCurrentUser({ users, sessions }, token),
-  createSession: (userId: string): Promise<{ token: string; expiresAt: string }> =>
-    sessions.create(userId),
+  register: async (input: unknown): Promise<PublicUser> => toPublicUser(await registerUser.execute(input)),
+  login: async (input: unknown): Promise<PublicUser> => toPublicUser(await loginUser.execute(input)),
+  currentUser: async (token: string | null | undefined): Promise<PublicUser | null> => {
+    const user = await getCurrentUser.execute(token)
+    return user ? toPublicUser(user) : null
+  },
+  createSession: (userId: string): Promise<{ token: string; expiresAt: string }> => sessions.create(userId),
   destroySession: (token: string): Promise<void> => sessions.remove(token),
 }
 
 export const performanceApi = {
-  get: (userId: string): Promise<PerformanceStats> => getPerformance({ performance }, userId),
-  record: (userId: string): Promise<PerformanceStats> => recordMovement({ performance }, userId),
+  get: (userId: string): Promise<PerformanceStats> => getPerformance.execute(userId),
+  record: (userId: string): Promise<PerformanceStats> => recordMovement.execute(userId),
 }
 
 export type { Session }
+
