@@ -106,23 +106,14 @@ npm start          # serve o build em http://localhost:3000
 
 > 📱 **Testar no celular:** rode `npm run dev` e abra o IP da máquina na LAN (ex.: `http://192.168.0.10:3000`). O cookie de sessão segue o protocolo do pedido: em `http://` ele **não** é `secure`, senão o navegador descartaria o login.
 
-### ☁️ Deploy no Vercel + store de dados
+### Deploy no Vercel + banco de dados
 
-O build roda em qualquer ambiente, mas **onde os dados são guardados muda com a plataforma**. O `src/adapters/gateways/db.ts` escolhe o store na primeira utilização:
+O deploy e o Next padrao (`next build --webpack`), mas atencao: no Vercel o disco e **somente leitura** - em producao os dados moram no **Upstash for Redis** (chave `movimento:db`, mesmo formato JSON do `data/db.json` local).
 
-| Ambiente | Store escolhido | Onde ficam os dados |
-| --- | --- | --- |
-| Local (`npm run dev` / `npm start`) | `JsonDocumentStore` | `data/db.json`, no disco (gravável) |
-| Vercel **com** `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | `RedisDocumentStore` | Upstash Redis (um documento JSON em `movimento:db`) |
-| Vercel **sem** essas variáveis | `JsonDocumentStore` | ❌ nada — o filesystem é somente leitura (`EROFS`) |
+Para ligar o banco: **Storage -> Marketplace -> Upstash for Redis** -> conecte ao projeto -> **Redeploy**. Pronto: `register -> login -> performance` passam a persistir.
 
-Para publicar de verdade, no painel do Vercel:
+> Guia completo (passo a passo, como o codigo escolhe o store, Redis local e problemas comuns) em **[docs/DATABASE.md](docs/DATABASE.md)**.
 
-1. **Storage → Marketplace → "Upstash for Redis"** (o plano free dá conta) e conecte ao projeto;
-2. a integração injeta `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN` (projetos criados na época do Vercel KV usam `KV_REST_API_*` — o app também aceita esses nomes);
-3. **Redeploy** — variáveis novas só passam a valer no próximo build.
-
-Nada mais muda: portas, casos de uso e UI continuam iguais — o Redis é apenas mais uma implementação do lado dos adapters. Para testar contra o Redis sem subir nada, copie `.env.example` para `.env.local` e preencha as credenciais.
 
 ## 🗺️ Mapa do repositório
 
@@ -259,12 +250,12 @@ E, em mudanças de fluxo HTTP, um **smoke test das rotas** na mão: `register` �
 | [`docs/PWA.md`](docs/PWA.md) | contrato da PWA, limpeza do worker legado e recuperação manual |
 | [`docs/BUILD_NOTES.md`](docs/BUILD_NOTES.md) | por que o build usa webpack e o que o Turbopack quebra no Windows |
 | [`docs/STYLE_GUIDE.md`](docs/STYLE_GUIDE.md) | tokens Carbon, tipografia, espaçamento e checklist de UI |
-| [`docs/AI_AGENT_SPECIFICATIONS.md`](docs/AI_AGENT_SPECIFICATIONS.md) | voz dos personagens, regras de produto e formato das mensagens |
+| [`docs/DATABASE.md`](docs/DATABASE.md) | banco de dados: Upstash for Redis no Vercel, `data/db.json` local, passo a passo e problemas comuns |
 | [`.clinerules`](.clinerules) | Clean Architecture: camadas, proibições e templates de código |
 
 ## 🧭 Notas e cuidados
 
-- 💾 **Persistência:** localmente os dados ficam em `data/db.json`; no Vercel, no Upstash Redis (veja a seção *Deploy no Vercel + store de dados*). É um documento JSON único, pensado para uso pessoal — não é banco de dados para escala.
+- **Persistencia:** localmente os dados ficam em `data/db.json`; no Vercel, no Upstash Redis (guia completo em [`docs/DATABASE.md`](docs/DATABASE.md)). E um documento JSON unico, pensado para uso pessoal - nao e banco para escala.
 - 🗂️ **Código legado na raiz:** as pastas `components/` e `domain/` vêm do starter/migração. O `components/` ainda entrega a UI do app (`movimento-app.tsx`, tema e cabeçalho); o `domain/` da raiz não é importado por ninguém e `components/sections/*` são sobras do starter Carbon. Código novo vai para `src/`.
 - 🌍 **Idioma:** a interface e os textos de produto são em **pt-BR**; no código, siga o idioma dos comentários do arquivo que estiver editando.
 
