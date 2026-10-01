@@ -12,6 +12,10 @@ const STATUS_BY_ERROR: Record<string, number> = {
 export function errorResponse(error: unknown): NextResponse {
   const known = error instanceof Error ? STATUS_BY_ERROR[error.name] : undefined
   const status = known ?? 500
+  if (status === 500) {
+    // 500 é sempre inesperado: regista a causa real nos Runtime Logs do Vercel.
+    console.error('[movimento] erro interno na API:', error)
+  }
   const message =
     status === 500 ? 'Erro interno. Tente novamente.' : error instanceof Error ? error.message : 'Erro.'
   return NextResponse.json({ error: message }, { status })
